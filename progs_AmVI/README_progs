@@ -1,0 +1,39 @@
+#**************************************************************************
+# Description of the contents of this directory
+# 
+# JLP
+# Version 22/02/2007
+#**************************************************************************
+*****
+compagnon.for
+C Calcul de l'influence du compagnon d'une étoile Am sur la photométrie
+
+compagnon.dat
+compagnon.log
+
+*****
+indices_Astars.for
+indices_Fstars.for
+
+C Photométrie de Stromgren pour des étoiles A (ou F pour l'autre version)
+C Calcul des corrections de rougissement et divers
+C autres paramètres: delta m1, delta c1
+C en vue de calculer [Fe/H] et Mv
+
+indice.log
+indices_Fstars.for
+photom-strom.dat
+photom.dat
+photom_2005.dat
+photom_2007.dat
+photom_AM-VI.dat
+table_07.txt
+table_AmVI.txt
+
+*****
+tsync_tcirc.c
+
+* To compute the characterictic times, t_sync and t_circ
+* for synchronization and circularisation of the orbits
+* in the case of radiative enveloppe
+* using the formulae of Zahn (1975)

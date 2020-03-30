@@ -1,0 +1,8 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Data in /home/text/tex/papers/carquillat/carqui07b_AmVIII/data
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+For Salpeter with M^{-0.3}:
+simu_mass.exe S,-0.3 histo_M03.dat list_M03.dat
+For Gauss with mean=0.8 M_sun and sigma=0.5 M_sun:
+simu_mass.exe G,0.8 histo_G08.dat list_G08.dat

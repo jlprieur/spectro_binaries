@@ -1,0 +1,82 @@
+##############################################################################
+# Makefile for SOURCE
+# to generate executable version of JLP fortran programs
+# Uses jlp_make.mk
+# JLP
+# Version 05/01/99 
+##############################################################################
+include $(JLPSRC)/jlp_make.mk
+
+.SUFFIXES:
+.SUFFIXES:  .o .c .for .exe $(SUFFIXES) 
+.c.o:
+	cc -c $(CFLAGS) $*.c
+
+.o.exe:
+	cc -o $(EXEC)/$*.exe $*.o \
+	$(JLIB) $(MIDLIB) $(MATHLIB) $(F77LIB) $(XLIB) -lm
+
+.c.exe:
+	cc -c $(CFLAGS) $*.c
+	cc -o $(EXEC)/$*.exe $*.o \
+	$(JLIB) $(MIDLIB) $(MATHLIB) $(F77LIB) $(XLIB) -lm
+
+
+.for.o:
+	$(EXEC)/esoext1.exe -I ../jlpsub -f $*.for
+	$(F77) -c $(FFLAGS) -Wall $*.f
+
+.for.exe:
+	$(EXEC)/esoext1.exe -I ../jlpsub -f $*.for
+	$(F77) -c $(FFLAGS) -Wall $*.f
+	$(F77) $(FFLAGS) -o $(EXEC)/$*.exe $*.o \
+	$(MATHLIB) $(JLIB) $(MIDLIB) $(XLIB) $(LIBC)
+# $(JLIB) $(MATHLIB) $(MIDLIB) $(XLIB) $(LIBC)
+
+#.o.exe:
+#	$(F77) $(FFLAGS) -o $(EXEC)/$*.exe $*.o \
+#	$(JLIB) $(MATHLIB) $(MIDLIB) $(XLIB) $(LIBC)
+#	rm $*.o
+
+all: $*.exe
+$*.exe : $*.for
+#$*.exe : $*.o $*.for
+	@ sleep
+
+sb_read.o : sb_read.c
+
+bs1_process.o : bs1_process.for
+
+period_lomb1.o : period_lomb1.c
+
+period_lomb.exe : period_lomb.c period_lomb1.o sb_read.o
+	cc -c $(CFLAGS) $*.c
+	cc -o $(EXEC)/$*.exe $*.o period_lomb1.o sb_read.o \
+	$(JLIB) $(MIDLIB) $(MATHLIB) $(F77LIB) $(XLIB) -lm
+
+period_string.exe : period_string.c sb_read.o
+	cc -c $(CFLAGS) $*.c
+	cc -o $(EXEC)/$*.exe $*.o sb_read.o \
+	$(JLIB) $(MIDLIB) $(MATHLIB) $(F77LIB) $(XLIB) -lm
+
+period_resid.exe : period_resid.c sb_initial.o bs1_process.o sb_read.o
+	cc -c $(CFLAGS) $*.c
+	cc -o $(EXEC)/$*.exe $*.o sb_read.o sb_initial.o bs1_process.o \
+	$(JLIB) $(MIDLIB) $(MATHLIB) $(F77LIB) $(XLIB) -lm
+
+sb_initial.o : sb_initial.c
+
+sb_initial.exe : sb_initial.c sb_read.c
+#	cc -c -DMAIN_PROGRAM $(CFLAGS) $*.c
+	cc -c $(CFLAGS) $*.c
+	cc -o $(EXEC)/$*.exe $*.o sb_read.o \
+	$(JLIB) $(MIDLIB) $(MATHLIB) $(F77LIB) $(XLIB) -lm
+
+bs1.exe : bs1.for bs1_process.for bs1_process.o
+	$(EXEC)/esoext1.exe -I ../jlpsub -f $*.for
+	$(F77) -c $(FFLAGS) -Wall $*.f
+	$(F77) $(FFLAGS) -o $(EXEC)/$*.exe $*.o bs1_process.o \
+	$(MATHLIB) $(JLIB) $(MIDLIB) $(XLIB) $(LIBC)
+
+clean:
+	rm -f *.o

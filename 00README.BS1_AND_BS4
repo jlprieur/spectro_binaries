@@ -1,0 +1,94 @@
+####################################################
+# Utilisation des programmes:
+#
+# JLP
+# Version du 16/10/2002
+#####################################################
+# BS1:
+# Editer le fichier HD187258, et mettre en 2ème ligne le nbre de points
+
+/dt1/carquillat> $EXEC/period1.exe HD187258 0.8 1
+period1  Version 29/05/2002 
+ OK: fmax=0.800000 ic=1
+OK: nber of data points=40
+period_read_data/ic = 1 
+period_read_data/n=40 data points
+period/Input data (y) average=-37.282501 variance=127.760956
+period/Input data (x) average=51012.484375 range=2740.328125
+ First frequency: 9.122995e-05 (= step in frequency domain)
+ Mean Nyquist frequency = 1.459679e-02 
+ Last frequency: 7.999954e-01 
+Output from period: max at py[425]=14.2087 prob=2.958973e-03
+ px[425]=0.038773 (max at 14.2087) period=25.791325
+ px[424]=0.038681 (max at 12.9351) period=25.852152
+ px[844]=0.076998 (max at 10.5195) period=12.987337
+ px[843]=0.076907 (max at 10.2635) period=13.002743
+ px[763]=0.069608 (max at 9.68838) period=14.366072
+ px[344]=0.031383 (max at 8.95782) period=31.864279
+ px[851]=0.077637 (max at 8.1639) period=12.880508
+ px[764]=0.069700 (max at 8.02541) period=14.347268
+
+# Visualiser le périodogramme avec:
+/dt1/carquillat> plot_period.com period.dat xterm L0
+
+# En faire une version postscript avec:
+/dt1/carquillat> plot_period.com period.dat postscript/HD187258_per.ps L0
+
+# Regarder les diagrammes des différentes périodes trouvées
+# avec plot_list.com
+plot_list.com phase_25.79.dat xterm 42
+
+# Editer le fichier HD187258 et écrire la période au début 
+# de la première ligne, puis lancer $EXEC/sb_initial.exe
+# qui va calculer les valeurs initiales.
+# Ce programme a créé le fichier VR_BS1.DAT qui sert de fichier
+# d'entrée au programme bs1.
+/dt1/carquillat> $EXEC/sb_initial.exe HD187258 4 1
+ OK: infile=HD187258 n_order=4 ic=1
+ Period: 25.790000  ny = 40
+ Epoch of origin: T1=0.000
+ Epoch that will be as close as T0 as possible: T2=49642.320
+Nber of data points should be: 40
+period_read_data/ic = 1 
+period_read_data/n=40 data points
+Nber of data points is actually: 40 (nx=9)
+Initial guess: phi=(0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 0.00 )
+Solution: phi 
+ -33.921 
+12.703 -6.105 
+-2.501 4.888 
+-1.228 -2.376 
+1.322 0.480 
+ r1=-14.09 r2=-5.49 ee=0.39
+ Preliminary elements: 
+ Period = 25.790000 days 
+ V0 = -33.92 km/s 
+ T0 = 49604.4096 (JD) 
+ e = 0.404 
+ K = 17.154 km/s 
+ omega = 2.952 rad  (or 169.112 deg)
+ Now writing these elements in the first line of VR_BS1.DAT
+ ny = 40
+period_read_data/ic = 1 
+period_read_data/n=40 data points
+ xx[1] = 0.320000, yy[1]=-22.799999
+
+# On lance ensuite bs1:
+> runs bs1
+ (option 4 pour avoir des figures postscript directement imprimables)
+
+# On transfère les fichiers dans un répertoire "report" par exemple
+# et on traite le fichier HD187258.tex
+
+# La figure des résidus et le fichier associé doivent être examinés pour
+# établir un diagnostic sur la présence éventuelle d'un 3ème corps.
+# Lorsque ces résidus montrent des oscillations lentes, qui traduisent
+# la présence d'un 3ème corps,
+# le fichier RESID.DAT peut être pris comme fichier de départ pour
+# un traitement par period1.c, sb_initial.c et bs1.for,
+# qui aboutit ainsi à une solution approchée de l'orbite de ce 3ème corps.
+# Un traitement plus précis peut ensuite être fait par bs4.for,
+# à partir de cette solution initiale. L'avantage de bs4.for est
+# d'ajuster les paramètres des deux orbites simultanément, mais cet ajustement
+# peut être plus instable.
+# 

@@ -1,0 +1,56 @@
+# Periode (jours) 
+# Passage au periastre ou noeud ascendant si circulaire
+# angle omega (noeuds/absides ou 0 si circulaire) 
+# eccentricite
+# k1 (semi amplitude de la courbe de vitesses radiales de la primaire en km/s)
+# k2 (semi amplitude de la courbe de vitesses radiales de la secondaire en km/s)
+# V0 vitesse du centre de gravite du systeme en km/s 
+# Parametre optionnel: 1 = periode fixeee 2 = orbite circulaire
+14.2081   48682.860 0.        0.        42.5      49.1      2.8      2 
+# Nombre de mesures de vitesses radiales (dans ce fichier) 
+# Nombre d'iterations (pour converger)
+42       5
+# Date en jour Julien (-2000000), vitesse radiale de la primaire, poids de la mesure
+# vitesse radiale de la secondaire, poids de la mesure
+48675.578 -40.2   1.          53.4   .25
+48676.425 -38.5   1.          49.9   .25
+48967.745  43.0   1.         -41.5   .25
+48968.730  33.3   1.         -33.9   .25
+48968.748                    -33.2   .25
+48969.747  17.9   1.
+49000.690 -26.0   1.          34.6   .25
+49141.387 - 1.7   1.          11.9   .25
+49142.369 -21.7   1.          31.5   .25
+49143.378 -34.0   1.          42.4   .25
+49144.482 -39.9   1.          49.7   .25
+49145.410 -38.1   1.          46.9   .25
+49146.424 -28.3   1.          35.6   .25
+49147.374 -12.9   1.          19.9   .25
+49317.722 -14.8   1.          20.2   .25
+49319.724  22.0   1.         -19.4   .25
+49320.705  35.6   1.         -34.5   .25
+49323.712  36.0   1.         -37.2   .25
+49324.717  22.4   1.         -19.1   .25
+49427.690 -34.5   1.          44.3   .25
+49428.407 -39.6   1.          49.8   .25
+49430.402 -29.8   1.          40.4   .25
+49781.584 -17.1   1.          30.4   .25
+49782.642 -32.1   1.          43.5   .25
+49785.546 -30.3   1.          40.0   .25
+49786.495 -16.4   1.          26.5   .25
+50126.681 -28.4   1.          39.8   .25
+50127.598 -15.1   1.          24.5   .25
+50193.383 -14.9   1.          24.5   .25
+50194.390 -29.8   1.          38.2   .25
+50195.486 -38.9   1.
+50414.669  33.6   1.         -34.4   .25
+50415.634  43.0   1.         -47.4   .25
+50416.672  43.5   1.         -47.1   .25
+50418.687  21.9   1. 
+50418.699                    -22.1   .25
+50479.511 -38.8   1.          48.4   .25
+50480.538 -39.7   1.          51.7   .25
+50481.538 -32.5   1.          43.1   .25
+50837.550 -22.1   1.          29.9   .25
+50839.672  16.4   1.         -13.7   .25
+50974.378 - 6.7   1.          15.2   .25

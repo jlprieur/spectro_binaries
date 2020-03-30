@@ -1,0 +1,65 @@
+############################################################
+# Recherche de la periode et des éléments provisoires
+#
+# Version 23/02/2005
+# JLP
+############################################################
+# period_lomb.c: main program with Lomb & Scargle method
+# period_lomb1.c: routines with Lomb & Scargle method, called by period_lomb
+#
+############################################################
+# Periodogramme de Lomb-Scargle
+############################################################
+$EXEC/period_lomb.exe HD204751 2. 1
+../plot_period.com period.dat xterm_small L0
+# ../plot_period.com period.dat LANDSCAPE/HD204751_per.ps L0
+../plot_period.com phase_13.91.dat xterm_small 42
+############################################################
+# Méthode de la corde
+############################################################
+$EXEC/period_string.exe HD204751 10,100,0.01 1
+../plot_period.com period_string.dat square L0
+############################################################
+# Eléments provisoires
+############################################################
+runs sb_initial HD204751 5 1
+############################################################
+# Méthode des residus
+############################################################
+$EXEC/period_resid.exe HD204751 10,100,0.01 5
+../plot_period.com period_string.dat square L0
+
+
+##############################################################
+# Example of 05/07/2006
+
+$EXEC/period_resid.exe HD264997 30,6000,10 4
+
+carquillat/test_HD264997> $EXEC/period_resid.exe HD264997 30,6000,10 4
+period_resid  Version 01/10/2004
+OK: nber of data points=22
+Iter #0/ Residuals are minimum at 0.656833 for period=5510.000000
+Iter #1/ Residuals are minimum at 4.27107 for period=2410.000000
+Iter #2/ Residuals are minimum at 4.4608 for period=2550.000000
+Iter #3/ Residuals are minimum at 4.46621 for period=2260.000000
+Iter #4/ Residuals are minimum at 4.50598 for period=2570.000000
+Iter #5/ Residuals are minimum at 4.54322 for period=2310.000000
+Iter #6/ Residuals are minimum at 4.63307 for period=2540.000000
+Iter #7/ Residuals are minimum at 4.68503 for period=2560.000000
+Output in period_input.dat, period_resid.dat
+and VR_BS1.DAT for the minimum
+
+
+../plot_period.com phase_5510.00.dat
+
+vi HD264997   -> input the period on the first line
+
+runs sb_initial HD264997 4 1   -> generate VR_BS1.DAT
+
+runs bs1
+
+-> correction of the first line of VR_BS1.DAT
+
+ 4712.9548 53553.907   1.54996   0.68397    14.19  31.78
+
+Period       T0      Omega (rad)    e        K1      V0

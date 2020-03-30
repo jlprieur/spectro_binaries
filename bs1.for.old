@@ -1,0 +1,192 @@
+C     AMELIORATION DES ELEMENTS ORBITAUX                         0000000
+C     POUR LES BINAIRES A UN SPECTRE                             0 bs1 0
+C                                                                0000000
+C     Options:P fixe (X=1), e fixe (Y=1), orbite circulaire (Y=2)
+C     Pour l'option orb. circul., fixer omega=0 et entrer pour T
+C     l'epoque de passage au noeud ascendant.
+C
+ 1000 FORMAT(F10.6,F10.3,2F10.5,F10.2,F6.2,1X,3I1)
+ 1100 FORMAT(I3,6X,I2)
+ 1200 FORMAT(F9.3,F7.1,F6.2)
+ 1300 FORMAT(5X,11HCORRECTIONS,15X,17HNOUVEAUX ELEMENTS,15X,12HERREURS S
+     1TD.//6X,E9.3,17X,3HP =,F15.7,13X,E9.3//6X,E9.3,17X,3HT =,F11.3,17X
+     2,E9.3//6X,E9.3,13X,7HOMEGA =,F13.5,15X,E9.3//6X,E9.3,17X,3HE =,F13
+     3.5,15X,E9.3//6X,E9.3,17X,3HK =,F10.2,18X,E9.3//6X,E9.3,16X,4HVO =,
+     4F10.2,18X,E9.3//27X,8HA.SINI =,6X,E10.4//29X,6HF(M) =,6X,E10.4////
+     5)
+ 1400 FORMAT(5X,I3,5X,F9.3,5X,F4.3,3(5X,F7.2),5X,F5.2)
+ 1500 FORMAT(1H1,13X,20HELEMENTS PROVISOIRES//16X,3HP =,F15.7//16X,3HT =
+     1,F11.3//12X,7HOMEGA =,F13.5//16X,3HE =,F13.5//16X,3HK =,F10.2//15X
+     2,4HVO =,F10.2////)
+ 1600 FORMAT(5X,4HOBS.,4X,9HDATE (JJ),5X,5HPHASE,4X,7HVR OBS.,5X,8HVR CA
+     1LC.,7X,3HO-C,6X,5HPOIDS/)
+ 1700 FORMAT(5X,13HPERIODE FIXEE)
+ 1800 FORMAT(5X,18HEXCENTRICITE FIXEE)
+ 1801 FORMAT(5X,17HORBITE CIRCULAIRE )
+ 2000 FORMAT(5X,43HABS(E).GE.1, POURSUITE DU CALCUL IMPOSSIBLE)
+ 2200 FORMAT(1H1,5X,I2,11HE ITERATION)
+      DIMENSION POI(120),TOBS(120),VIT(120),RES(120)
+      DIMENSION AA(6,120),B(6),DELT(6),ERR(6),G(6),H(6),EQM(6),CORR(6)
+      DIMENSION A(6,6),C(6,6),D(6,6)
+      INTEGER R,X,Y,F,DELTA(6),Z
+      REAL KA,M
+      DOUBLE PRECISION P,T,PHI
+C     OUVERTURE DU FICHIER INPUT NOMME VR.DAT;
+C     CREATION DU FICHIER OUTPUT RESULTAT
+      OPEN(5,FILE='VR.DAT',STATUS='OLD')
+      OPEN(6,FILE='RESULT.DAT',STATUS='NEW')
+      NORB=1
+   88 READ(5,1000)P,TZERO,OMEGA,E,KA,VZERO,X,Y,Z
+      T=TZERO
+  881 READ(5,1100)N,NITER
+      READ(5,1200)(TOBS(I),VIT(I),POI(I),I=1,N)
+      R=6-X-Y-Z
+      WRITE(6,1500)P,T,OMEGA,E,KA,VZERO
+      ITER=0
+C
+C     RESOLUTION DE L EQUATION DE KEPLER
+      PI=3.1415926535
+      UN=1.
+      DIST=1.
+   89 DO 9 J=1,R
+      B(J)=0
+      DO 9 K=1,R
+    9 A(J,K)=0
+      WRITE(6,1600)
+      ENNE=2.*PI/P
+      DO53 I=1,N
+      IF(POI(I).EQ.0)POI(I)=1.
+      PHI=DMOD((TOBS(I)-T)/P,DBLE(UN))
+      IF(PHI.LT.0)PHI=1.+PHI
+   92 M=ENNE*(TOBS(I)-T)
+      EMME=AMOD(M,2.*PI)
+      U=EMME
+    1 ANOM=EMME+E*SIN(U)
+      IF(ABS(ANOM-U).LT.0.000001)GO TO 2
+      U=ANOM
+      GO TO 1
+C
+C     CALCUL DES COEFFICIENTS DES EQUATIONS NORMALES
+    2 V=2.*ATAN(TAN(ANOM/2.)*SQRT((1+E)/(1-E)))
+      VIC=VZERO+KA*(E*COS(OMEGA)+COS(V+OMEGA))
+      RES(I)=VIT(I)-VIC
+      WRITE(6,1400)I,TOBS(I),PHI,VIT(I),VIC,RES(I),POI(I)
+      IF(ITER.EQ.NITER.OR.DIST.LT.10.**(-7))GO TO 53
+      S=SIN(V+OMEGA)
+      Q=S*(1+E*COS(V))**2/(1-E**2)**1.5
+      IF(X.EQ.1)GOTO 21
+      AA(1,I)=KA*M*Q/P
+   21 IF(Z.EQ.1)GO TO 23
+      AA(2-X,I)=KA*ENNE*Q
+      IF(Y.EQ.2)GO TO 22
+   23 AA(3-X-Z,I)=-KA*(E*SIN(OMEGA)+S)
+      IF(Y.EQ.1)GO TO 22
+      AA(4-X,I)=KA*(COS(OMEGA)-S*SIN(V)*(2.+E*COS(V))/(1-E**2))
+   22 CONTINUE
+      AA(5-X-Y-Z,I)=E*COS(OMEGA)+COS(V+OMEGA)
+      AA(6-X-Y-Z,I)=1
+      DO43 J=1,R
+      B(J)=B(J)+POI(I)*AA(J,I)*RES(I)
+      DO 3 K=J,R
+      A(J,K)=A(J,K)+POI(I)*AA(J,I)*AA(K,I)
+    3 CONTINUE
+   43 CONTINUE
+   53 CONTINUE
+      IF(ITER.EQ.NITER.OR.DIST.LT.10.**(-7))GO TO 81
+      DO 4 J=2,R
+      JJ=J-1
+      DO 4 K=1,JJ
+    4 A(J,K)=A(K,J)
+C
+C     INVERSION DE LA MATRICE A DE RANG R
+      DO 10 I=1,R
+      DO 10 J=1,R
+      D(I,J)=0
+   10 D(I,I)=1.
+      DO116 K=1,R
+      DO 11 I1=1,R
+      DO 11 J1=1,R
+   11 C(I1,J1)=A(I1,J1)
+      IF(A(K,K).NE.0)GO TO 15
+      KK=K+1
+      DO 12 L=KK,R
+      IF(A(L,K).EQ.0)GO TO 12
+      L1=L
+      GO TO 13
+   12 CONTINUE
+   13 DO 14 J1=1,R
+      C(K,J1)=A(L1,J1)
+      C(L1,J1)=A(K,J1)
+      A(K,J1)=C(K,J1)
+      A(L1,J1)=C(L1,J1)
+      G(J1)=D(L1,J1)
+      H(J1)=D(K,J1)
+      D(K,J1)=G(J1)
+   14 D(L1,J1)=H(J1)
+   15 DO 61 I=1,R
+      IF(A(I,K).EQ.0.OR.I.EQ.K)GO TO 61
+      DO 16 J=1,R
+      A(I,J)=A(I,J)/C(I,K)-A(K,J)/C(K,K)
+      D(I,J)=D(I,J)/C(I,K)-D(K,J)/C(K,K)
+   16 CONTINUE
+   61 CONTINUE
+  116 CONTINUE
+      DO 17 I=1,R
+      DO 17 J=1,R
+   17 D(I,J)=D(I,J)/A(I,I)
+C
+C     NOUVEAUX ELEMENTS - ERREURS
+      DO 5 I=1,R
+    5 DELT(I)=0
+      DO 6 I=1,R
+      DO 6 J=1,R
+    6 DELT(I)=DELT(I)+D(I,J)*B(J)
+      SOMB=0
+      DO 7 I=1,N
+    7 SOMB=SOMB+POI(I)*RES(I)**2
+      SOMD=0
+      DO 8 I=1,R
+    8 SOMD=SOMD+B(I)*DELT(I)
+      SOME=SOMB-SOMD
+      SOM=SQRT(SOME/(N-R))
+      DO 80 I=1,R
+   80 EQM(I)=SOM*SQRT(D(I,I))
+      DIST=0
+      F=0
+      DO 801 I=1,6
+      DELTA(I)=0
+      DELTA(1)=X
+      DELTA(2)=Z     
+      IF(Y.EQ.2)DELTA(3)=1
+      DELTA(4)=Y
+      IF(Y.EQ.2)DELTA(4)=1
+      F=F+DELTA(I)
+      J=I-F+DELTA(I)
+      ERR(I)=(1-DELTA(I))*EQM(J)
+      CORR(I)=(1-DELTA(I))*DELT(J)
+  801 DIST=DIST+ABS(CORR(I))
+      P=P+CORR(1)
+      T=TZERO+DMOD(T-TZERO+CORR(2),P)
+      OMEGA=AMOD(OMEGA+CORR(3),2.*PI)
+      IF(OMEGA.LT.0)OMEGA=OMEGA+2.*PI
+      E=E+CORR(4)
+      KA=KA+CORR(5)
+      VZERO=VZERO+CORR(6)
+      ASINI=0
+      FDEM=0
+      IF(ABS(E).GE.1.)GO TO 802
+      ASINI=43200.*P*KA*SQRT(1.-E**2)/PI
+      FDEM=0.00000010385*(1.-E**2)**1.5*P*KA**3
+  802 CONTINUE
+      ITER=ITER+1
+      WRITE(6,2200)ITER
+      IF(X.EQ.1)WRITE(6,1700)
+      IF(Y.EQ.1)WRITE(6,1800)
+      IF(Y.EQ.2)WRITE(6,1801)
+      WRITE(6,1300)CORR(1),P,ERR(1),CORR(2),T,ERR(2),CORR(3),OMEGA,ERR(3
+     1),CORR(4),E,ERR(4),CORR(5),KA,ERR(5),CORR(6),VZERO,ERR(6),ASINI,FD
+     2EM
+      IF(ABS(E).LT.1.)GO TO 89
+      WRITE(6,2000)
+   81 STOP
+      END

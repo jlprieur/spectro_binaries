@@ -1,0 +1,213 @@
+      open(1,file='donnees-strom',status='unknown')
+    1  READ(1,100,end=99,err=1010)ihd,by,am1,c1,beta
+  100 format(I8,4F7.3)
+       print 100,ihd,by,am1,c1,beta
+       cons1=-0.04
+C       bett=0.195*croub+2.5
+       cons2=-0.025
+C
+C calcul des indices crochets
+C
+       crom1=am1+0.3*by
+       croc1=c1-0.2*by
+       croub=croc1+2.*crom1
+       print 109,crom1,croc1,croub
+  109  format(1h ,'crom1= ',F7.3,1x,'croc1= ',F7.3, 1x,'croub= '
+     1,F7.3)
+C
+C domaines des etoiles A4-G0
+C
+C calcul de c1Z(ZAMS) et de MVZAMS (Crawford 1975 Astron J 60, 955
+C
+       if(beta.gt.2.74)goto 901
+       if(beta.le.2.74.and.beta.gt.2.72)goto 902
+       if(beta.le.2.72.and.beta.gt.2.69)goto 60
+       if(beta.le.2.69.and.beta.gt.2.65)goto 61
+       if(beta.le.2.65)goto 19
+       goto 20
+  901  c1z=1.93*beta-4.63
+       goto 65
+  902  c1z=3.*beta-7.56
+       goto 65
+   60  c1z=2.85*beta-7.168
+       goto 65
+   61  c1z=2.6*beta-6.501
+       goto 65
+   19  c1z=2.*beta-4.91
+   65  continue
+C 
+C m1hy(m1 pour les hyades Crawford 1970)
+C c1zac(c1 pour la ZAMS Crawford 1970)
+C
+   75 continue
+C
+C calcul de m1 (Hyades) a partir des tables de Crawford et Barnes 1970
+C et de Crawford 1975 pour les étoiles F (2.72 < beta < 2.50)
+C
+       if(beta.gt.2.855)goto 32
+       if(beta.le.2.855.and.beta.gt.2.805)goto 33
+       if(beta.le.2.805.and.beta.gt.2.74)goto 34
+       if(beta.le.2.74.and.beta.gt.2.7)goto 35
+       if(beta.le.2.7.and.beta.gt.2.65)goto 36
+       if(beta.le.2.65.And.beta.gt.2.40)goto 37
+       goto 20
+   32 am1hy=0.207
+       goto 38
+   33 am1hy=0.08*beta-0.2
+       goto 38
+   34 am1hy=0.371*beta-0.837
+       goto 38
+   35 am1hy=0.23*beta-0.449
+       goto 38
+   36 am1hy=0.974*beta**(-1.758)
+       goto 38
+   37 am1hy=4219.836*beta**(-10.349)
+   38 continue
+       c1zac=0.81209*beta**2-1.99*beta
+       deltc1=c1-c1z
+       deltm1=am1hy-am1
+       am1hyb=0.31788*beta**2-2.0548*beta+3.4
+       deltmb=am1hyb-am1
+       deczac=c1-c1zac
+       deltb=2.72-beta
+C
+C corrections de Stromgren sur c1 et m1
+C
+       if(by.gt.0.23)goto 15
+       if(by.le.0.23.and.by.gt.-0.05)goto 16
+       goto 20
+   15 c1cs=c1+0.7*deltm1
+       corc1=0.7*deltm1
+       am1cs=am1
+       corm1=9.99
+       goto 17
+   16 am1cs=am1+0.1*deltc1
+       corm1=0.1*deltc1
+       c1cs=c1
+       corc1=9.99
+   17 continue
+       deltc1s=c1cs-c1z
+       deltm1s=am1hy-am1cs
+       am1by=2.5*by**2-1.31514*by+0.34436
+       dm1byc=am1by-am1
+       do 425 i=1.5
+       byc=by-0.5*dm1byc
+       am1by=2.5*byc**2-1.31514*byc+0.34436
+  425 dm1byc=am1by-am1cs
+       do 424 i=1,5
+       if(byc.le.0.27)goto 420
+       if(byc.gt.0.27.and.byc.le.0.313)goto 421
+       if(byc.gt.0.313)goto 422
+       goto 20
+  420 c1zbyc=-2.4*byc+1.1165
+       goto 423
+  421 c1zbyc=-1.851*byc+0.966
+       goto 423
+  422 c1zbyc=-1.211*byc+0.767
+  423 continue
+       dc1byc=c1cs-c1zbyc
+       byc=0.222+1.11*deltb+2.7*deltb**2-0.05*dc1byc-(0.1+3.6*deltb)*
+     1dm1byc
+  424 continue
+       byc0=byc
+       Ebyc0=by-byc0
+       am1byc=am1+0.3*Ebyc0
+       c0byc=c1-0.25*Ebyc0
+       avbyc=4.3*Ebyc0
+       if(byc0.le.0.266)goto 410
+       if(byc0.gt.0.266.and.byc0.le.0.377)goto 411
+       if(byc0.gt.0.377)goto 415
+  410 amzbyc=10.86*byc0+0.424
+       goto 412
+  411 amzbyc=9.877*byc0+0.799
+       goto 412
+  415 amzbyc=6.671*byc0+1.657
+  412 dcbyc0=dcbyc
+   20 continue
+C
+C relation de Crawford 1975 astron J 80 955
+C
+       by0cst=0.222+1.11*deltb+2.7*deltb**2-0.05*delc1s-(0.1+3.6*deltb)*
+     1deltm1s
+       by0c=0.222+1.11*deltb+2.7*deltb**2-0.05*deltc1-(0.1+3.6*deltb)*
+     1deltm1
+       c0=c1-0.25*(by-by0c)
+       am0=am1+0.32*(by-by0c)
+       Eby0=by-by0c
+       avby0=4.3*Eby0
+       avbycs=4.3*Eby0cs
+       if(am0.gt.0.22)goto 270
+       goto 272
+  270 print 271
+  271 format(1h ,'Etoile metallique')
+  272 if(Eby0.le.cons1)goto 273
+       goto 275
+  273 print 274
+  274 format(1h ,'Ap ou Fp')
+  275 if(c0.gt.1.19)goto 276
+       goto 277
+  276 print 571
+  277 if(deltc1.ge.0.28)goto 278
+       goto 279
+  278 print 571
+  279 if(deltm1.ge.0.01)goto 280
+       goto 281
+  280 print 572
+       goto 290
+  281 if(deltm1.ge.0.05.and.Eby0.ge.0.1)goto 280
+       if(by0c.le.0.08)goto 282
+       goto 290
+  282 print 573
+  571 format(1h ,'etoile a grande luminosite')
+  572 format(1h ,'supergeante')
+  573 format(1h ,'etoile du groupe intermediaire possible')
+  290 continue
+       by0s=2.946-0.15*deltc1-beta
+       Eby0s=by-by0s
+       Eby0cs=by-by0cst
+C
+C relation de Crawford pour les etoiles A (2.72<beta<2.89) pour (b-y)0
+C
+      by0a=2.943-beta-0.1*(deltc1+deltm1)
+      Eby0a=by-by0a
+      avbya=4.3*Eby0a
+      c1crs=c1cs-0.2*by
+      c1crz=c1z-0.2*by0a
+      dc1cr=c1crs-c1crz
+C
+C relation de Crawford 1979, Astron. J, 84, 1858 pour les etoiles A
+C
+       if(deltm1.lt.0.)goto 655
+       if(deltm1.ge.0.)goto 656
+  655  bycr=2.946-beta-0.1*deltc1-0.25*deltm1
+       goto 657
+  656  bycr=2.946-beta-0.1*deltc1
+  657  continue
+       Ebycr=by-bycr
+       avbycr=4.3*Ebycr
+       print 888
+  888  format(1h ,
+     1'(b-y)c',2x,'HD',9x,'(b-y)0',2x,'beta',4x,'am10',4x,'c0',5x,
+     1'E(b-y)0',1x,
+     2'Av(b-y)0',6x,'c1Z',3x,'deltam1',1x,'deltac1',1x,'deltamb',
+     31x,'deczac')
+       print 703,ihd,by0c,beta,am0,c0,Eby0,avby0,c1z,deltm1,deltc1,
+     1 deltmb,deczac
+  703 format(1h ,'by0c',2x,i8,2x,6f8.3,4x,6F8.3)
+      print 704,ihd,byc0,beta,am1byc,c0byc,Ebyc0,avbyc,dm1byc,dc1byc
+  704 format(1h ,'byc0',2x,i8,2x,6F8.3,20x,2F8.3)
+      print 705,ihd,by0cst,beta,am1cs,c1cs,Eby0cs,avbycs,deltm1s,delc1s,
+     1 corm1,corc1
+  705 format(1h ,'by0cst',i8,2x,6F8.3,20x,2F8.3,4x,2F8.3)
+      print 706,ihd,by0s,beta,Eby0s
+  706 format(1h ,'by0s',2x,i8,2x,F8.3,1x,F8.3,16x,F8.3)
+      print 707,ihd,by0a,beta,Eby0a
+  707 format(1h ,'by0a',2x,i8,2x,F8.3,1x,F8.3,16X,F8.3)
+      print 708,ihd,bycr,beta,Ebycr
+  708 format(1h ,'bycr',2x,i8,2x,F8.3,1x,F8.3,16x,F8.3)
+      GOTO 1
+   99 continue
+ 1010 continue
+C 999 format(1h ,'erreur')
+      stop
+      end

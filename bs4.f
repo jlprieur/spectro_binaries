@@ -1,0 +1,897 @@
+      PROGRAMBS4
+      IMPLICITNONE
+      INTEGERIDIM,NPAR
+      PARAMETER(IDIM=120,NPAR=12)
+      REALTOBS(IDIM),VIT1(IDIM),POI1(IDIM),RES1(IDIM)
+      REALAA(NPAR,200),B(NPAR),DELT(NPAR),ERR(NPAR),EQM(NPAR),CORR(NPAR)
+      REALA(NPAR,NPAR),D(NPAR,NPAR)
+      DOUBLEPRECISIONPHI,PHI3,PP,T,PP3,T3,TZERO,TZERO3
+      INTEGERNP,X1,Y1,X3,Y3,F,DELTA(NPAR),LU_IN,LU_OUT,IT,NN,ITER,NITER
+      REALOMEGA,OMEGA3,EE,EE3,PI,VV,VV3,VIC1,WW1
+      REALK1,K3,SIGMA1,SUMSQ1,Q,S,Q3,S3,SOM_POI
+      REALFDEM1,FDEM3,A1SINI,A3SINI,SOM,SOMB,SOMD,SOME
+      REALDIST,VZERO,ERR_A1SINI,ERR_A3SINI,ERR_FDEM1,ERR_FDEM3
+      INTEGERI,J,K,JJ,IOPT
+      LOGICALORBIT1_IS_FIXED,ORBIT3_IS_FIXED
+      CHARACTEROBJECT*20,OUT_RESULTS*60,OUT_LATEX*60
+      PI=3.1415926535
+      WRITE(6,*)' Titre (sans blancs, car utilise comme prefixe):'
+      READ(5,10)OBJECT
+   10 FORMAT(A)
+      LU_IN=7
+      OPEN(LU_IN,FILE='VR_BS4.DAT',STATUS='OLD')
+      WRITE(6,42)
+   42 FORMAT(' Menu:',/,' 0 = fit both orbits',/,' 1 = fit orbit1 only',
+     +/,' 3 = fit orbit3 only')
+      READ(5,*)I
+      IF(I.EQ.1)THEN
+      ORBIT1_IS_FIXED=.FALSE.
+      ORBIT3_IS_FIXED=.TRUE.
+      ELSEIF(I.EQ.3)THEN
+      ORBIT1_IS_FIXED=.TRUE.
+      ORBIT3_IS_FIXED=.FALSE.
+      ELSE
+      ORBIT1_IS_FIXED=.FALSE.
+      ORBIT3_IS_FIXED=.FALSE.
+      ENDIF
+      LU_OUT=8
+      OUT_RESULTS=OBJECT(1:INDEX(OBJECT,' ')-1)//'.txt'
+      OPEN(LU_OUT,FILE=OUT_RESULTS,STATUS='UNKNOWN')
+ 1000 FORMAT(F10.6,F10.3,2F10.5,F10.2,F6.2,1X,2I1)
+   88 READ(LU_IN,1000)PP,TZERO,OMEGA,EE,K1,VZERO,X1,Y1
+      WRITE(6,1001)PP,TZERO,OMEGA*180./PI,EE,K1,VZERO
+ 1001 FORMAT(' P=',F12.7,' T0=',F10.3,' Omega=',F9.3,'(deg) E=',F9.3,' K
+     +1=',F9.2,'V0=',F9.2)
+      T=TZERO
+      IF(X1.NE.1)X1=0
+      IF(Y1.NE.1.AND.Y1.NE.2)Y1=0
+      WRITE(6,*)'Option: X1=',X1,' Y1=',Y1
+      IF(Y1.EQ.2)THEN
+      EE=0.
+      OMEGA=0.
+      ENDIF
+      IF(EE.GE.1.OR.EE3.GE.1)THEN
+      WRITE(6,*)'Erreur fatale: EE=',EE,' et EE3=',EE3
+      ENDIF
+      READ(LU_IN,1000)PP3,TZERO3,OMEGA3,EE3,K3,WW1,X3,Y3
+      WRITE(6,1002)PP3,TZERO3,OMEGA3*180./PI,EE3,K3
+ 1002 FORMAT(' P3=',F12.5,' T3=',F10.3,' Omega3=',F9.3,'(deg) E3=',F9.3,
+     +' K3=',F9.2)
+      T3=TZERO3
+      IF(X3.NE.1)X3=0
+      IF(Y3.NE.1.AND.Y3.NE.2)Y3=0
+      WRITE(6,*)'Option: X3=',X3,' Y3=',Y3
+      IF(Y3.EQ.2)THEN
+      EE3=0.
+      OMEGA3=0.
+      ENDIF
+  881 READ(LU_IN,*)NN,NITER
+      WRITE(6,*)'Nombre de mesures:',NN,' Nombre d''iterations',NITER
+      DO80000I=1,NN
+      READ(LU_IN,*)TOBS(I),VIT1(I)
+      POI1(I)=1.0
+      IF(POI1(I).LE.0.)THEN
+      WRITE(6,*)' Erreur fatale: poids aberrant: ',POI1(I)
+      STOP
+      ENDIF
+80000 CONTINUE
+      CLOSE(LU_IN)
+      SOM_POI=0.
+      DO80001I=1,NN
+      SOM_POI=SOM_POI+POI1(I)
+80001 CONTINUE
+      IF(ORBIT3_IS_FIXED)THEN
+      NP=6-X1-Y1
+      ELSE
+      NP=11-X1-Y1-X3-Y3
+      ENDIF
+      WRITE(LU_OUT,1500)PP,T,OMEGA,EE,K1,PP3,T3,K3,VZERO
+ 1500 FORMAT(13X,'ELEMENTS PROVISOIRES',/,16X,'P =',F15.7,/,16X,'T =',F1
+     +1.3,/,12X,'OMEGA =',F13.5,/,16X,'E =',F13.5,/,16X,'K1 =',F10.2,/,1
+     +6X,'P3 =',F15.7,/,16X,'T3 =',F11.3,/,16X,'K3 =',F10.2,/,16X,'V0 ='
+     +,F10.2,/,/)
+      DIST=1.
+      DO80002I=1,NP
+      DO80003J=1,NN
+      AA(I,J)=0
+80003 CONTINUE
+80002 CONTINUE
+      ITER=0
+      DO80004IT=0,NITER
+      DO80005J=1,NP
+      B(J)=0
+80005 CONTINUE
+      DO80006J=1,NP
+      DO80007K=1,NP
+      A(J,K)=0
+80007 CONTINUE
+80006 CONTINUE
+      IF(ITER.EQ.0.OR.ITER.EQ.NITER)THEN
+      WRITE(LU_OUT,1600)
+ 1600 FORMAT('OBS.',1X,'DATE (JJ)',2X,'PHASE',1X,'V_OBS1',2X,'V_CALC1',1
+     +X,'(O-C)1',1X,'POIDS1')
+      ENDIF
+      DO53I=1,NN
+      PHI=DMOD((TOBS(I)-T)/PP,1.D0)
+      IF(PHI.LT.0)PHI=1.+PHI
+      PHI3=DMOD((TOBS(I)-T3)/PP3,1.D0)
+      IF(PHI3.LT.0)PHI3=1.+PHI3
+      CALLVITESSE_CALCULEE_BS4(PHI,PHI3,VIC1,VV,VV3,EE,EE3,OMEGA,OMEGA3,
+     +K1,K3,VZERO)
+      RES1(I)=VIT1(I)-VIC1
+      IF(ITER.EQ.0.OR.ITER.EQ.NITER)THEN
+      WRITE(LU_OUT,1400)I,TOBS(I),PHI,VIT1(I),VIC1,RES1(I),POI1(I)
+ 1400 FORMAT(I3,2X,F9.3,2X,F4.3,3(2X,F7.2),3X,F5.2)
+      ENDIF
+      IF(ITER.EQ.NITER.OR.DIST.LT.1.E-7)GOTO53
+      S=SIN(VV+OMEGA)
+      Q=S*(1+EE*COS(VV))**2/(1-EE**2)**1.5
+      S3=SIN(VV3+OMEGA3)
+      Q3=S3*(1+EE3*COS(VV3))**2/(1-EE3**2)**1.5
+      IF(X1.EQ.0)THEN
+      AA(1,I)=(2.*PI/PP**2)*(TOBS(I)-T)*K1*Q
+      ENDIF
+      AA(2-X1,I)=K1*Q*(2.*PI/PP)
+      IF(Y1.NE.2)THEN
+      AA(3-X1,I)=-K1*(EE*SIN(OMEGA)+S)
+      IF(Y1.EQ.0)THEN
+      AA(4-X1,I)=K1*(COS(OMEGA)-S*SIN(VV)*(2+EE*COS(VV))/(1-EE**2))
+      ENDIF
+      ENDIF
+      AA(5-X1-Y1,I)=EE*COS(OMEGA)+COS(VV+OMEGA)
+      AA(6-X1-Y1,I)=1.
+      IF(X3.EQ.0)THEN
+      AA(7-X1-Y1,I)=(2.*PI/PP3**2)*(TOBS(I)-T3)*K3*Q3
+      ENDIF
+      AA(8-X1-Y1-X3,I)=K3*Q3*(2.*PI/PP3)
+      IF(Y3.NE.2)THEN
+      AA(9-X1-Y1-X3,I)=-K3*(EE3*SIN(OMEGA3)+S3)
+      IF(Y3.EQ.0)THEN
+      AA(10-X1-Y1-X3,I)=K3*(COS(OMEGA3)-S3*SIN(VV3)*(2.+EE3*COS(VV3))/(1
+     +.-EE3**2))
+      ENDIF
+      ENDIF
+      AA(11-X1-Y1-X3-Y3,I)=EE3*COS(OMEGA3)+COS(VV3+OMEGA3)
+      DO80008J=1,NP
+      B(J)=B(J)+POI1(I)*AA(J,I)*RES1(I)
+80008 CONTINUE
+      DO80009J=1,NP
+      DO80010K=J,NP
+      A(J,K)=A(J,K)+POI1(I)*AA(J,I)*AA(K,I)
+80010 CONTINUE
+80009 CONTINUE
+   53 CONTINUE
+      IF(ITER.EQ.NITER.OR.DIST.LT.1.E-7)GOTO81
+      DO80011J=2,NP
+      JJ=J-1
+      DO80012K=1,JJ
+      A(J,K)=A(K,J)
+80012 CONTINUE
+80011 CONTINUE
+      CALLMAT_INV12(A,D,NP)
+      DO80013I=1,NP
+      DELT(I)=0
+80013 CONTINUE
+      DO6I=1,NP
+      DO6J=1,NP
+      DELT(I)=DELT(I)+D(I,J)*B(J)
+    6 CONTINUE
+      SOMB=0
+      DO7I=1,NN
+      SOMB=SOMB+POI1(I)*RES1(I)**2
+    7 CONTINUE
+      SOMB=SOMB*NN/SOM_POI
+      SOMD=0
+      SOME=SOMB-SOMD
+      SOM=SQRT(SOME/(NN-NP))
+      DO80I=1,NP
+      EQM(I)=SOM*SQRT(D(I,I))
+   80 CONTINUE
+      DIST=0
+      F=0
+      DO80014I=1,12
+      DELTA(I)=0
+80014 CONTINUE
+      DELTA(1)=X1
+      DELTA(4)=Y1
+      IF(Y1.EQ.2)THEN
+      DELTA(3)=1
+      DELTA(4)=1
+      ENDIF
+      DELTA(8)=X3
+      DELTA(10)=Y3
+      IF(Y3.EQ.2)THEN
+      DELTA(9)=1
+      DELTA(10)=1
+      ENDIF
+      DO80015I=1,11
+      F=F+DELTA(I)
+      J=I-F+DELTA(I)
+      ERR(I)=(1-DELTA(I))*EQM(J)
+      CORR(I)=(1-DELTA(I))*DELT(J)
+      DIST=DIST+ABS(CORR(I))
+80015 CONTINUE
+      IF(.NOT.ORBIT1_IS_FIXED)THEN
+      PP=PP+CORR(1)
+      T=TZERO+DMOD(T-TZERO+CORR(2),PP)
+      OMEGA=AMOD(OMEGA+CORR(3),2.*PI)
+      IF(OMEGA.LT.0)OMEGA=OMEGA+2.*PI
+      IF(EE+CORR(4).LT.0.)THEN
+      EE=EE/2.
+      ELSE
+      EE=EE+CORR(4)
+      ENDIF
+      IF(EE.GE.1.)EE=0.9
+      K1=K1+CORR(5)
+      IF(K1.LT.0)K1=-K1
+      VZERO=VZERO+CORR(6)
+      ENDIF
+      IF(.NOT.ORBIT3_IS_FIXED)THEN
+      PP3=PP3+CORR(7)
+      T3=TZERO3+DMOD(T3-TZERO3+CORR(8),PP3)
+      OMEGA3=AMOD(OMEGA3+CORR(9),2.*PI)
+      IF(OMEGA3.LT.0)OMEGA3=OMEGA3+2.*PI
+      IF(EE3+CORR(10).LT.0.)THEN
+      EE3=EE3/2.
+      ELSE
+      EE3=EE3+CORR(10)
+      ENDIF
+      IF(EE3.GE.1.)EE3=0.9
+      K3=K3+CORR(11)
+      IF(K3.LT.0)K3=-K3
+      ENDIF
+      A1SINI=0
+      FDEM1=0
+      IF(ABS(EE).LT.1.)THEN
+      A1SINI=43200.*PP*K1*SQRT(1-EE**2)/PI
+      FDEM1=0.00000010385*K1**3*PP*(1-EE**2)**1.5
+      ENDIF
+      ERR_A1SINI=A1SINI*(ERR(1)/PP+ERR(5)/K1+ERR(4)*EE/(1.-EE**2))
+      ERR_FDEM1=FDEM1*(3.*EE*ERR(4)/(1.-EE**2)+ERR(1)/PP+3.*ERR(5)/K1)
+      A3SINI=0
+      FDEM3=0
+      IF(ABS(EE3).LT.1.)THEN
+      A3SINI=43200.*PP3*K3*SQRT(1.-EE3**2)/PI
+      FDEM3=0.00000010385*PP3*(K3**3)*((1.-EE3**2)**1.5)
+      ENDIF
+      ERR_A3SINI=A3SINI*(ERR(7)/PP3+ERR(11)/K3+ERR(10)*EE3/(1.-EE3**2))
+      ERR_FDEM3=FDEM3*(3.*EE3*ERR(10)/(1.-EE3**2)+ERR(7)/PP3+3.*ERR(11)/
+     +K3)
+      ITER=ITER+1
+      WRITE(LU_OUT,2200)ITER
+ 2200 FORMAT('*******',I2,'eme iteration ********')
+      IF(X1.EQ.1)WRITE(LU_OUT,1700)
+ 1700 FORMAT('Periode fixee pour la primaire')
+      IF(Y1.EQ.1)WRITE(LU_OUT,1800)
+ 1800 FORMAT('Excentricite fixee pour la primaire')
+      IF(Y1.EQ.2)WRITE(LU_OUT,1801)
+ 1801 FORMAT('Orbite circulaire pour la primaire')
+      IF(X3.EQ.1)WRITE(LU_OUT,1703)
+ 1703 FORMAT('Periode fixee pour le 3eme corps')
+      IF(Y3.EQ.1)WRITE(LU_OUT,1803)
+ 1803 FORMAT('Excentricite fixee pour le 3eme corps')
+      IF(Y3.EQ.2)WRITE(LU_OUT,1804)
+ 1804 FORMAT('Orbite circulaire pour le 3eme corps')
+      WRITE(LU_OUT,1300)CORR(1),PP,ERR(1),CORR(2),T,ERR(2),CORR(3)*180./
+     +PI,OMEGA*180./PI,ERR(3)*180./PI,CORR(3),OMEGA,ERR(3),CORR(4),EE,ER
+     +R(4),CORR(5),K1,ERR(5),CORR(6),VZERO,ERR(6),A1SINI,ERR_A1SINI,FDEM
+     +1,ERR_FDEM1
+ 1300 FORMAT(5X,'CORRECTIONS',15X,'NOUVEAUX ELEMENTS',15X,'ERREURS STD.'
+     +,/,3X,E9.3,17X,'P =',F15.7,13X,E9.3,/,3X,E9.3,17X,'T =',F11.3,17X,
+     +E9.3,/,3X,E9.3,13X,'OMEGA =',F13.5,15X,E9.3,4X,'(deg.)',/,3X,E9.3,
+     +13X,'OMEGA =',F13.5,15X,E9.3,4X,'(rad.)',/,3X,E9.3,17X,'E =',F13.5
+     +,15X,E9.3,/,3X,E9.3,17X,'K =',F10.2,18X,E9.3,/,3X,E9.3,16X,'V0 =',
+     +F10.2,18X,E9.3,/,24X,'A.SINI =',6X,E10.4,12X,E9.3,/,26X,'F(M) =',6
+     +X,E10.4,12X,E9.3,/)
+      WRITE(LU_OUT,2001)CORR(7),PP3,ERR(7),CORR(8),T3,ERR(8),CORR(9)*180
+     +./PI,OMEGA3*180./PI,ERR(9)*180./PI,CORR(9),OMEGA3,ERR(9),CORR(10),
+     +EE3,ERR(10),CORR(11),K3,ERR(11),A3SINI,ERR_A3SINI,FDEM3,ERR_FDEM3
+ 2001 FORMAT(3X,E9.3,16X,'P3 =',F15.7,13X,E9.3,/,3X,E9.3,16X,'T3 =',F11.
+     +3,17X,E9.3,/,3X,E9.3,12X,'OMEGA3 =',F13.5,15X,E9.3,4X,'(deg.)',/,3
+     +X,E9.3,12X,'OMEGA3 =',F13.5,15X,E9.3,4X,'(rad.)',/,3X,E9.3,16X,'E3
+     + =',F13.5,15X,E9.3,/,3X,E9.3,16X,'K3 =',F13.5,15X,E9.3,/,23X,'A3.S
+     +INI =',6X,E10.4,12X,E9.3,/,26X,'F(M) =',6X,E10.4,12X,E9.3,/,/)
+      IF(ABS(EE).GE.1.)THEN
+      WRITE(LU_OUT,2300)
+      WRITE(6,2300)
+ 2300 FORMAT(5X,'ABS(EE).GE.1, Poursuite du calcul impossible!')
+      CLOSE(LU_OUT)
+      STOP
+      ENDIF
+80004 CONTINUE
+   81 CONTINUE
+      WRITE(6,*)' Courbe: 0=aucune  1=courte periode'
+      WRITE(6,*)' 2=longue periode  3=residus  4=toutes ?'
+      READ(5,*)IOPT
+      IF(IOPT.EQ.1)THEN
+      CALLJLP_PLOT_BS4(TOBS,VIT1,POI1,T,T3,PP,PP3,NN,EE,EE3,OMEGA,OMEGA3
+     +,K1,K3,VZERO,OBJECT)
+      ELSEIF(IOPT.EQ.2)THEN
+      CALLJLP_PLOT_BS4_3(TOBS,VIT1,POI1,T,T3,PP,PP3,NN,EE,EE3,OMEGA,OMEG
+     +A3,K1,K3,VZERO,OBJECT)
+      ELSEIF(IOPT.EQ.3)THEN
+      CALLJLP_PLOT_RES(TOBS,RES1,POI1,NN,OBJECT)
+      ELSEIF(IOPT.EQ.4.OR.IOPT.EQ.5)THEN
+      CALLJLP_PLOT_BS4(TOBS,VIT1,POI1,T,T3,PP,PP3,NN,EE,EE3,OMEGA,OMEGA3
+     +,K1,K3,VZERO,OBJECT)
+      CALLJLP_PLOT_BS4_3(TOBS,VIT1,POI1,T,T3,PP,PP3,NN,EE,EE3,OMEGA,OMEG
+     +A3,K1,K3,VZERO,OBJECT)
+      CALLJLP_PLOT_RES(TOBS,RES1,POI1,NN,OBJECT)
+      ENDIF
+      CALLRMS_RESIDUS(RES1,POI1,NN,SIGMA1,SUMSQ1)
+      WRITE(6,3000)SIGMA1,SUMSQ1
+      WRITE(LU_OUT,3000)SIGMA1,SUMSQ1
+ 3000 FORMAT(/,'Sigma O-C: Etoile primaire (1)   ',F5.2,' km/s',/,' Sum 
+     +of squares: ',E12.5,/)
+      WRITE(LU_OUT,3001)PP,T,OMEGA*180/3.14159,EE,K1,VZERO,A1SINI/1.e6,F
+     +DEM1,SIGMA1
+      WRITE(LU_OUT,3002)ERR(1),ERR(2),ERR(3)*180/3.14159,ERR(4),ERR(5),E
+     +RR(6),ERR_A1SINI/1.e6,ERR_FDEM1
+ 3001 FORMAT(' & ',F10.3,' & ',F12.2,' & ',F5.1,' & ',F8.3,' & ',F8.2,' 
+     +& ',F8.2,' & ',F8.2,' & ',F8.3,' & ',F5.2,' \\\\')
+ 3002 FORMAT(' & $\\pm',F8.3,'$ & $\\pm',F8.2,'$ & $\\pm',F5.1,'$ & $\\p
+     +m',F8.3,'$ & $\\pm',F8.2,'$ & $\\pm',F8.2,'$ & $\\pm',F8.2,'$ & $\
+     +\pm',F8.3,'$ & \\\\')
+      WRITE(LU_OUT,3001)PP3,T3,OMEGA3*180/3.14159,EE3,K3,VZERO,A3SINI/1.
+     +e6,FDEM3,SIGMA1
+      WRITE(LU_OUT,3002)ERR(7),ERR(8),ERR(9)*180/3.14159,ERR(10),ERR(11)
+     +,ERR(6),ERR_A3SINI/1.e6,ERR_FDEM3
+      CLOSE(LU_OUT)
+      OUT_LATEX=OBJECT(1:INDEX(OBJECT,' ')-1)//'.tex'
+      CALLSB4_TO_LATEX(PP,PP3,T,T3,OMEGA,OMEGA3,EE,EE3,K1,K3,VZERO,A1SIN
+     +I,A3SINI,FDEM1,FDEM3,SIGMA1,ERR,ERR_A1SINI,ERR_A3SINI,ERR_FDEM1,ER
+     +R_FDEM3,TOBS,VIT1,RES1,POI1,NN,OUT_LATEX,OBJECT)
+      WRITE(6,1300)CORR(1),PP,ERR(1),CORR(2),T,ERR(2),CORR(3)*180./PI,OM
+     +EGA*180./PI,ERR(3)*180./PI,CORR(3),OMEGA,ERR(3),CORR(4),EE,ERR(4),
+     +CORR(5),K1,ERR(5),CORR(6),VZERO,ERR(6),A1SINI,ERR_A1SINI,FDEM1,ERR
+     +_FDEM1
+      WRITE(6,2001)CORR(7),PP3,ERR(7),CORR(8),T3,ERR(8),CORR(9)*180./PI,
+     +OMEGA3*180./PI,ERR(9)*180./PI,CORR(9),OMEGA3,ERR(9),CORR(10),EE3,E
+     +RR(10),CORR(11),K3,ERR(11),A3SINI,ERR_A3SINI,FDEM3,ERR_FDEM3
+      WRITE(6,*)' Fichiers de sortie: ',OUT_RESULTS(1:INDEX(OUT_RESULTS,
+     +' ')-1),', ',OUT_LATEX(1:INDEX(OUT_LATEX,' ')-1),', '
+      IF(IOPT.EQ.4.OR.IOPT.EQ.5)THEN
+      WRITE(6,*)' et graphes dans: ',OBJECT(1:INDEX(OBJECT,' ')-1),'_sho
+     +rt.ps,',OBJECT(1:INDEX(OBJECT,' ')-1),'_long.ps'
+      WRITE(6,*)'    et ',OBJECT(1:INDEX(OBJECT,' ')-1),'_resi.ps,'
+      ELSEIF(IOPT.EQ.1)THEN
+      WRITE(6,*)' et graphe dans: ',OBJECT(1:INDEX(OBJECT,' ')-1),'_shor
+     +t.ps'
+      ELSEIF(IOPT.EQ.2)THEN
+      WRITE(6,*)' et graphe dans: ',OBJECT(1:INDEX(OBJECT,' ')-1),'_long
+     +.ps'
+      ELSEIF(IOPT.EQ.3)THEN
+      WRITE(6,*)' et graphe dans: ',OBJECT(1:INDEX(OBJECT,' ')-1),'_resi
+     +.ps'
+      ENDIF
+      STOP
+      END
+      SUBROUTINEJLP_PLOT_BS44(TOBS,VIT1,POI1,T,T3,PP,PP3,NN,EE,EE3,OMEGA
+     +,OMEGA3,K1,K3,VZERO,OBJECT)
+      IMPLICITNONE
+      INTEGERDIM,KCUR
+      PARAMETER(DIM=1024,KCUR=4)
+      REALTOBS(120),VIT1(120),POI1(120)
+      DOUBLEPRECISIONT,T3,PP,PP3,PHI,PHI3
+      REALPI,EE,EE3,OMEGA,OMEGA3,K1,K3,VZERO,VV,VV3
+      REALVIC1
+      INTEGERKK,NPTS(KCUR),I,NN,I1,I2
+      REALXPLOT(DIM,KCUR),YPLOT(DIM,KCUR)
+      CHARACTERCHAR1*30,CHAR2*30,CHAR3*40,OBJECT*20
+      CHARACTERPLOTDEV*40,IN_FILE*40,IN_COMMENTS*80
+      CHARACTER*4NCHAR(KCUR)
+      I1=1
+      I2=1
+      DO80016I=1,NN
+      PHI=DMOD((TOBS(I)-T)/PP,1.D0)
+      IF(PHI.LT.0)PHI=1.+PHI
+      PHI3=DMOD((TOBS(I)-T3)/PP3,1.D0)
+      IF(PHI3.LT.0)PHI3=1.+PHI3
+      CALLVITESSE_CALCULEE_BS4(PHI,PHI3,VIC1,VV,VV3,EE,EE3,OMEGA,OMEGA3,
+     +0.,K3,0.)
+      IF(POI1(I).EQ.1)THEN
+      XPLOT(I1,1)=PHI
+      YPLOT(I1,1)=VIT1(I)-VIC1
+      I1=I1+1
+      ELSE
+      XPLOT(I2,2)=PHI
+      YPLOT(I2,2)=VIT1(I)-VIC1
+      I2=I2+1
+      ENDIF
+80016 CONTINUE
+      NCHAR(1)='913'
+      NPTS(1)=I1-1
+      NCHAR(2)='513'
+      NPTS(2)=I2-1
+      PI=3.1415926535
+      DO80017I=1,1000
+      PHI=FLOAT(I)/1000.
+      PHI3=0.
+      CALLVITESSE_CALCULEE_BS4(PHI,PHI3,VIC1,VV,VV3,EE,EE3,OMEGA,OMEGA3,
+     +K1,0.,VZERO)
+      XPLOT(I,3)=PHI
+      YPLOT(I,3)=VIC1
+80017 CONTINUE
+      NCHAR(3)='L0'
+      NPTS(3)=1000
+      KK=3
+      WRITE(PLOTDEV,103)OBJECT(1:INDEX(OBJECT,' ')-1),'_short.ps'
+  103 FORMAT('&landscape/',A,A)
+      WRITE(CHAR1,11)'Phase',CHAR(0)
+      WRITE(CHAR2,11)'Radial velocity (km/s)',CHAR(0)
+      WRITE(CHAR3,11)OBJECT,CHAR(0)
+   11 FORMAT(A,A1)
+      IN_FILE=' '
+      IN_COMMENTS=' '
+      CALLNEWPLOT(XPLOT,YPLOT,NPTS,DIM,KK,CHAR1,CHAR2,CHAR3,NCHAR,PLOTDE
+     +V,IN_FILE,IN_COMMENTS)
+      RETURN
+      END
+      SUBROUTINEJLP_PLOT_BS4(TOBS,VIT1,POI1,T,T3,PP,PP3,NN,EE,EE3,OMEGA,
+     +OMEGA3,K1,K3,VZERO,OBJECT)
+      IMPLICITNONE
+      INTEGERDIM,KCUR
+      PARAMETER(DIM=1024,KCUR=4)
+      REALTOBS(120),VIT1(120),POI1(120)
+      DOUBLEPRECISIONT,T3,PP,PP3,PHI,PHI3,PHI_MINI
+      REALPI,EE,EE3,OMEGA,OMEGA3,K1,K3,VZERO,VV,VV3
+      REALVIC1
+      INTEGERKK,NPTS(KCUR),I,NN,I1,I2,ITER
+      REALXPLOT(DIM,KCUR),YPLOT(DIM,KCUR)
+      CHARACTERCHAR1*30,CHAR2*30,CHAR3*40,OBJECT*20
+      CHARACTERPLOTDEV*40,IN_FILE*40,IN_COMMENTS*80
+      CHARACTER*4NCHAR(KCUR)
+      PHI_MINI=0.1
+      I1=1
+      I2=1
+      DO80018ITER=1,3
+      DO80019I=1,NN
+      PHI=DMOD((TOBS(I)-T)/PP,1.D0)
+      IF(PHI.LT.0)PHI=1.+PHI
+      PHI3=DMOD((TOBS(I)-T3)/PP3,1.D0)
+      IF(PHI3.LT.0)PHI3=1.+PHI3
+      CALLVITESSE_CALCULEE_BS4(PHI,PHI3,VIC1,VV,VV3,EE,EE3,OMEGA,OMEGA3,
+     +0.,K3,0.)
+      IF(ITER.EQ.1)THEN
+      IF(POI1(I).EQ.1)THEN
+      XPLOT(I1,1)=PHI
+      YPLOT(I1,1)=VIT1(I)-VIC1
+      I1=I1+1
+      ELSE
+      XPLOT(I2,2)=PHI
+      YPLOT(I2,2)=VIT1(I)-VIC1
+      I2=I2+1
+      ENDIF
+      ELSEIF(ITER.EQ.2)THEN
+      IF(PHI.LT.PHI_MINI)THEN
+      PHI=PHI+1.
+      IF(POI1(I).EQ.1)THEN
+      XPLOT(I1,1)=PHI
+      YPLOT(I1,1)=VIT1(I)-VIC1
+      I1=I1+1
+      ELSE
+      XPLOT(I2,2)=PHI
+      YPLOT(I2,2)=VIT1(I)-VIC1
+      I2=I2+1
+      ENDIF
+      ENDIF
+      ELSEIF(ITER.EQ.3)THEN
+      IF(PHI.GT.(1.-PHI_MINI))THEN
+      PHI=PHI-1.
+      IF(POI1(I).EQ.1)THEN
+      XPLOT(I1,1)=PHI
+      YPLOT(I1,1)=VIT1(I)-VIC1
+      I1=I1+1
+      ELSE
+      XPLOT(I2,2)=PHI
+      YPLOT(I2,2)=VIT1(I)-VIC1
+      I2=I2+1
+      ENDIF
+      ENDIF
+      ENDIF
+80019 CONTINUE
+80018 CONTINUE
+      NCHAR(1)='913'
+      NPTS(1)=I1-1
+      NCHAR(2)='513'
+      NPTS(2)=I2-1
+      PI=3.1415926535
+      DO80020I=1,1000
+      PHI=-PHI_MINI+(1+2.*PHI_MINI)*REAL(I)/1000.
+      PHI3=0.
+      CALLVITESSE_CALCULEE_BS4(PHI,PHI3,VIC1,VV,VV3,EE,EE3,OMEGA,OMEGA3,
+     +K1,0.,VZERO)
+      XPLOT(I,3)=PHI
+      YPLOT(I,3)=VIC1
+80020 CONTINUE
+      NCHAR(3)='L0'
+      NPTS(3)=1000
+      KK=3
+      WRITE(PLOTDEV,103)OBJECT(1:INDEX(OBJECT,' ')-1),'_short.ps'
+  103 FORMAT('&landscape/',A,A)
+      WRITE(CHAR1,11)'Phase',CHAR(0)
+      WRITE(CHAR2,11)'Radial velocity (km/s)',CHAR(0)
+      WRITE(CHAR3,11)OBJECT,CHAR(0)
+   11 FORMAT(A,A1)
+      IN_FILE=' '
+      IN_COMMENTS=' '
+      CALLNEWPLOT(XPLOT,YPLOT,NPTS,DIM,KK,CHAR1,CHAR2,CHAR3,NCHAR,PLOTDE
+     +V,IN_FILE,IN_COMMENTS)
+      RETURN
+      END
+      SUBROUTINEJLP_PLOT_RES(TOBS,RES1,POI1,NN,OBJECT)
+      IMPLICITNONE
+      INTEGERDIM,KCUR
+      PARAMETER(DIM=1024,KCUR=4)
+      REALTOBS(120),RES1(120),POI1(120)
+      INTEGERKK,NPTS(KCUR),I,NN,I1,I2
+      REALXPLOT(DIM,KCUR),YPLOT(DIM,KCUR)
+      CHARACTERCHAR1*30,CHAR2*30,CHAR3*40,OBJECT*20
+      CHARACTERPLOTDEV*40,IN_FILE*40,IN_COMMENTS*80
+      CHARACTER*4NCHAR(KCUR)
+      I1=1
+      I2=1
+      DO80021I=1,NN
+      IF(POI1(I).EQ.1.)THEN
+      XPLOT(I1,1)=TOBS(I)
+      YPLOT(I1,1)=RES1(I)
+      I1=I1+1
+      ELSE
+      XPLOT(I2,2)=TOBS(I)
+      YPLOT(I2,2)=RES1(I)
+      I2=I2+1
+      ENDIF
+80021 CONTINUE
+      NCHAR(1)='913'
+      NPTS(1)=I1-1
+      NCHAR(2)='513'
+      NPTS(2)=I2-1
+      KK=2
+      WRITE(PLOTDEV,103)OBJECT(1:INDEX(OBJECT,' ')-1),'_resi.ps'
+  103 FORMAT('&landscape/',A,A)
+      WRITE(CHAR1,11)'Date',CHAR(0)
+      WRITE(CHAR2,11)'Residuals (km/s)',CHAR(0)
+      WRITE(CHAR3,11)OBJECT,CHAR(0)
+   11 FORMAT(A,A1)
+      IN_FILE=' '
+      IN_COMMENTS=' '
+      CALLNEWPLOT(XPLOT,YPLOT,NPTS,DIM,KK,CHAR1,CHAR2,CHAR3,NCHAR,PLOTDE
+     +V,IN_FILE,IN_COMMENTS)
+      RETURN
+      END
+      SUBROUTINEJLP_PLOT_BS4_33(TOBS,VIT1,POI1,T,T3,PP,PP3,NN,EE,EE3,OME
+     +GA,OMEGA3,K1,K3,VZERO,OBJECT)
+      IMPLICITNONE
+      INTEGERDIM,KCUR
+      PARAMETER(DIM=1024,KCUR=4)
+      REALTOBS(120),VIT1(120),POI1(120)
+      DOUBLEPRECISIONT,T3,PP,PP3,PHI,PHI3
+      REALPI,EE,EE3,OMEGA,OMEGA3,K1,K3,VZERO,VV,VV3,VIC1
+      INTEGERKK,NPTS(KCUR),I,NN,I1,I2
+      REALXPLOT(DIM,KCUR),YPLOT(DIM,KCUR)
+      CHARACTERCHAR1*30,CHAR2*30,CHAR3*40,OBJECT*20
+      CHARACTERPLOTDEV*40,IN_FILE*40,IN_COMMENTS*80
+      CHARACTER*4NCHAR(KCUR)
+      I1=1
+      I2=1
+      DO80022I=1,NN
+      PHI=DMOD((TOBS(I)-T)/PP,1.D0)
+      IF(PHI.LT.0)PHI=1.+PHI
+      PHI3=DMOD((TOBS(I)-T3)/PP3,1.D0)
+      IF(PHI3.LT.0)PHI3=1.+PHI3
+      CALLVITESSE_CALCULEE_BS4(PHI,0.D0,VIC1,VV,VV3,EE,EE3,OMEGA,OMEGA3,
+     +K1,0.,VZERO)
+      IF(POI1(I).EQ.1.)THEN
+      XPLOT(I1,1)=PHI3
+      YPLOT(I1,1)=VIT1(I)-VIC1+VZERO
+      I1=I1+1
+      ELSE
+      XPLOT(I2,2)=PHI3
+      YPLOT(I2,2)=VIT1(I)-VIC1+VZERO
+      I2=I2+1
+      ENDIF
+80022 CONTINUE
+      NCHAR(1)='913'
+      NPTS(1)=I1-1
+      NCHAR(2)='513'
+      NPTS(2)=I2-1
+      write(6,*)'npts(1)=',npts(1),'npts(2)',npts(2)
+      PI=3.1415926535
+      DO80023I=1,1000
+      PHI3=FLOAT(I)/1000.
+      CALLVITESSE_CALCULEE_BS4(0.D0,PHI3,VIC1,VV,VV3,EE,EE3,OMEGA,OMEGA3
+     +,0.,K3,VZERO)
+      XPLOT(I,3)=PHI3
+      YPLOT(I,3)=VIC1
+80023 CONTINUE
+      NCHAR(3)='L0'
+      NPTS(3)=1000
+      KK=3
+      WRITE(PLOTDEV,103)OBJECT(1:INDEX(OBJECT,' ')-1),'_long.ps'
+  103 FORMAT('&landscape/',A,A)
+      WRITE(CHAR1,11)'Phase',CHAR(0)
+      WRITE(CHAR2,11)'Radial velocity (km/s)',CHAR(0)
+      WRITE(CHAR3,11)OBJECT,CHAR(0)
+   11 FORMAT(A,A1)
+      IN_FILE=' '
+      IN_COMMENTS=' '
+      CALLNEWPLOT(XPLOT,YPLOT,NPTS,DIM,KK,CHAR1,CHAR2,CHAR3,NCHAR,PLOTDE
+     +V,IN_FILE,IN_COMMENTS)
+      RETURN
+      END
+      SUBROUTINEJLP_PLOT_BS4_3(TOBS,VIT1,POI1,T,T3,PP,PP3,NN,EE,EE3,OMEG
+     +A,OMEGA3,K1,K3,VZERO,OBJECT)
+      IMPLICITNONE
+      INTEGERDIM,KCUR
+      PARAMETER(DIM=1024,KCUR=4)
+      REALTOBS(120),VIT1(120),POI1(120),PHI_MINI
+      DOUBLEPRECISIONT,T3,PP,PP3,PHI,PHI3
+      REALPI,EE,EE3,OMEGA,OMEGA3,K1,K3,VZERO,VV,VV3,VIC1
+      INTEGERITER,KK,NPTS(KCUR),I,NN,I1,I2
+      REALXPLOT(DIM,KCUR),YPLOT(DIM,KCUR)
+      CHARACTERCHAR1*30,CHAR2*30,CHAR3*40,OBJECT*20
+      CHARACTERPLOTDEV*40,IN_FILE*40,IN_COMMENTS*80
+      CHARACTER*4NCHAR(KCUR)
+      PHI_MINI=0.1
+      I1=1
+      I2=1
+      DO80024ITER=1,3
+      DO80025I=1,NN
+      PHI=DMOD((TOBS(I)-T)/PP,1.D0)
+      IF(PHI.LT.0)PHI=1.+PHI
+      PHI3=DMOD((TOBS(I)-T3)/PP3,1.D0)
+      IF(PHI3.LT.0)PHI3=1.+PHI3
+      CALLVITESSE_CALCULEE_BS4(PHI,0.D0,VIC1,VV,VV3,EE,EE3,OMEGA,OMEGA3,
+     +K1,0.,VZERO)
+      IF(ITER.EQ.1)THEN
+      IF(POI1(I).EQ.1.)THEN
+      XPLOT(I1,1)=PHI3
+      YPLOT(I1,1)=VIT1(I)-VIC1+VZERO
+      I1=I1+1
+      ELSE
+      XPLOT(I2,2)=PHI3
+      YPLOT(I2,2)=VIT1(I)-VIC1+VZERO
+      I2=I2+1
+      ENDIF
+      ELSEIF(ITER.EQ.2)THEN
+      IF(PHI3.LT.PHI_MINI)THEN
+      PHI3=PHI3+1.
+      IF(POI1(I).EQ.1.)THEN
+      XPLOT(I1,1)=PHI3
+      YPLOT(I1,1)=VIT1(I)-VIC1+VZERO
+      I1=I1+1
+      ELSE
+      XPLOT(I2,2)=PHI3
+      YPLOT(I2,2)=VIT1(I)-VIC1+VZERO
+      I2=I2+1
+      ENDIF
+      ENDIF
+      ELSEIF(ITER.EQ.3)THEN
+      IF(PHI3.GT.(1.-PHI_MINI))THEN
+      PHI3=PHI3-1.
+      IF(POI1(I).EQ.1)THEN
+      XPLOT(I1,1)=PHI3
+      YPLOT(I1,1)=VIT1(I)-VIC1+VZERO
+      I1=I1+1
+      ELSE
+      XPLOT(I2,2)=PHI3
+      YPLOT(I2,2)=VIT1(I)-VIC1+VZERO
+      I2=I2+1
+      ENDIF
+      ENDIF
+      ENDIF
+80025 CONTINUE
+80024 CONTINUE
+      NCHAR(1)='913'
+      NPTS(1)=I1-1
+      NCHAR(2)='513'
+      NPTS(2)=I2-1
+      write(6,*)'npts(1)=',npts(1),'npts(2)',npts(2)
+      PI=3.1415926535
+      DO80026I=1,1000
+      PHI3=-PHI_MINI+(1+2.*PHI_MINI)*REAL(I)/1000.
+      CALLVITESSE_CALCULEE_BS4(0.D0,PHI3,VIC1,VV,VV3,EE,EE3,OMEGA,OMEGA3
+     +,0.,K3,VZERO)
+      XPLOT(I,3)=PHI3
+      YPLOT(I,3)=VIC1
+80026 CONTINUE
+      NCHAR(3)='L0'
+      NPTS(3)=1000
+      KK=3
+      WRITE(PLOTDEV,103)OBJECT(1:INDEX(OBJECT,' ')-1),'_long.ps'
+  103 FORMAT('&landscape/',A,A)
+      WRITE(CHAR1,11)'Phase',CHAR(0)
+      WRITE(CHAR2,11)'Radial velocity (km/s)',CHAR(0)
+      WRITE(CHAR3,11)OBJECT,CHAR(0)
+   11 FORMAT(A,A1)
+      IN_FILE=' '
+      IN_COMMENTS=' '
+      CALLNEWPLOT(XPLOT,YPLOT,NPTS,DIM,KK,CHAR1,CHAR2,CHAR3,NCHAR,PLOTDE
+     +V,IN_FILE,IN_COMMENTS)
+      RETURN
+      END
+      SUBROUTINEVITESSE_CALCULEE_BS4(PHI,PHI3,VIC1,VV,VV3,EE,EE3,OMEGA,O
+     +MEGA3,K1,K3,VZERO)
+      IMPLICITNONE
+      DOUBLEPRECISIONPHI,PHI3
+      REALM,PI,EMME,ANOM,ANOM_OLD,VV,VV3
+      REALEE,EE3,OMEGA,OMEGA3,K1,K3,VZERO,VIC1
+      INTEGERI
+      PI=3.1415926535
+      M=2.*PI*PHI
+      EMME=AMOD(M,2.*PI)
+      ANOM_OLD=EMME
+      DO80027I=1,1000
+      ANOM=EMME+EE*SIN(ANOM_OLD)
+      IF(ABS(ANOM-ANOM_OLD).LT.1.E-6)GOTO12
+      ANOM_OLD=ANOM
+80027 CONTINUE
+   12 VV=2.*ATAN(TAN(ANOM/2.)*SQRT((1+EE)/(1-EE)))
+      M=2.*PI*PHI3
+      EMME=AMOD(M,2.*PI)
+      ANOM_OLD=EMME
+      DO80028I=1,1000
+      ANOM=EMME+EE3*SIN(ANOM_OLD)
+      IF(ABS(ANOM-ANOM_OLD).LT.1.E-6)GOTO14
+      ANOM_OLD=ANOM
+80028 CONTINUE
+   14 VV3=2.*ATAN(TAN(ANOM/2.)*SQRT((1+EE3)/(1-EE3)))
+      VIC1=VZERO+K1*(EE*COS(OMEGA)+COS(VV+OMEGA))+K3*(EE3*COS(OMEGA3)+CO
+     +S(VV3+OMEGA3))
+      RETURN
+      END
+      SUBROUTINERMS_RESIDUS(RES,POI,NN,SIGMA,SUMSQ)
+      INTEGERI
+      REALSUM,SUMSQ
+      REALRES(120),POI(120)
+      SUMSQ=0.
+      SUM=0.
+      DO80029I=1,NN
+      SUMSQ=SUMSQ+POI(I)*RES(I)*RES(I)
+      SUM=SUM+POI(I)
+80029 CONTINUE
+      SIGMA=SQRT(SUMSQ/SUM)
+      RETURN
+      END
+      SUBROUTINEMAT_INV12(A,D,NP)
+      IMPLICITNONE
+      INTEGERNP,NPAR
+      PARAMETER(NPAR=12)
+      REALA(NPAR,NPAR),C(NPAR,NPAR),D(NPAR,NPAR),G,H
+      INTEGERI1,J1,I,J,K,KK,L,L1
+      DO10I=1,NP
+      DO10J=1,NP
+      D(I,J)=0
+      D(I,I)=1.
+   10 CONTINUE
+      DO116K=1,NP
+      DO11I1=1,NP
+      DO11J1=1,NP
+      C(I1,J1)=A(I1,J1)
+   11 CONTINUE
+      IF(A(K,K).EQ.0)THEN
+      write(6,*)' Pivot null pour K=',K
+      write(6,*)' (JLP: j''ai des doutes sur la suite...)'
+      KK=K+1
+      DO12L=KK,NP
+      IF(A(L,K).NE.0)THEN
+      L1=L
+      GOTO13
+      ENDIF
+   12 CONTINUE
+   13 DO14J1=1,NP
+      C(K,J1)=A(L1,J1)
+      C(L1,J1)=A(K,J1)
+      A(K,J1)=C(K,J1)
+      A(L1,J1)=C(L1,J1)
+      G=D(L1,J1)
+      H=D(K,J1)
+      D(K,J1)=G
+      D(L1,J1)=H
+   14 CONTINUE
+      ENDIF
+      DO61I=1,NP
+      IF(A(I,K).NE.0.AND.I.NE.K)THEN
+      DO16J=1,NP
+      A(I,J)=A(I,J)/C(I,K)-A(K,J)/C(K,K)
+      D(I,J)=D(I,J)/C(I,K)-D(K,J)/C(K,K)
+   16 CONTINUE
+      ENDIF
+   61 CONTINUE
+  116 CONTINUE
+      DO17I=1,NP
+      DO17J=1,NP
+      D(I,J)=D(I,J)/A(I,I)
+   17 CONTINUE
+      RETURN
+      END
+      SUBROUTINESB4_TO_LATEX(PP,PP3,T,T3,OMEGA,OMEGA3,EE,EE3,K1,K3,VZERO
+     +,A1SINI,A3SINI,FDEM1,FDEM3,SIGMA1,ERR,ERR_A1SINI,ERR_A3SINI,ERR_FD
+     +EM1,ERR_FDEM3,TOBS,VIT1,RES1,POI1,NN,OUT_LATEX,OBJECT)
+      IMPLICITNONE
+      DOUBLEPRECISIONPP,PP3,T,T3,PHI,PHI3
+      INTEGERNN
+      REALTOBS(NN),POI1(NN),VIT1(NN)
+      REALRES1(NN),ERR(11)
+      REALOMEGA,EE,K1,VZERO,A1SINI,FDEM1
+      REALSIGMA1
+      REALERR_A1SINI,ERR_FDEM1
+      REALOMEGA3,EE3,K3,A3SINI,FDEM3,ERR_FDEM3,ERR_A3SINI
+      CHARACTEROUT_LATEX*40,OBJECT*20
+      INTEGERI,LU_OUT
+      LU_OUT=8
+      OPEN(LU_OUT,FILE=OUT_LATEX,STATUS='UNKNOWN')
+      WRITE(LU_OUT,3000)OBJECT(1:INDEX(OBJECT,' ')-1)
+ 3000 FORMAT('\\documentclass{article}',/,'\\usepackage{graphicx}',/,'\\
+     +voffset=-1cm',/,'\\hoffset=-4cm',/,'\\textwidth=15.6cm',/,'\\texth
+     +eight=26cm',/,'\\newcommand{\\nodata}{\\ldots}',/,/,'\\begin{docum
+     +ent}',/,/,'\\centerline{\\large \\bf ',A,'}',/,/,'\\vskip 1cm',/,'
+     +\\tabcolsep=1mm',/,'\\begin{tabular}{lccccccccc}',/,'\\hline',/,'N
+     +ame & $P$ & $T_0$ (JD)& $\\omega$ & $e$ &',' $K_1$ & $V_0$ ','& $a
+     +_1 \\sin i$ ',/,'& $f(m_1)$ & $\\sigma_{(O-C)}$ \\\\',/,'& days & 
+     +2400000+ & deg. & & km/s & km/s ','& Gm & M$_\\odot$ & km/s \\\\',
+     +/,'\\hline')
+      WRITE(LU_OUT,3001)OBJECT(1:INDEX(OBJECT,' ')-1),PP,T,OMEGA*180/3.1
+     +4159,EE,K1,VZERO,A1SINI/1.e6,FDEM1,SIGMA1
+ 3001 FORMAT(A,' & ',F12.5,' & ',F12.2,' & ',F5.1,' & ',F8.3,' & ',F8.2,
+     +' & ',F8.2,' & ',F8.2,' & ',F8.3,' & ',F5.2,' \\\\')
+      WRITE(LU_OUT,3002)ERR(1),ERR(2),ERR(3)*180/3.14159,ERR(4),ERR(5),E
+     +RR(6),ERR_A1SINI/1.e6,ERR_FDEM1
+ 3002 FORMAT(' & $\\pm',F10.5,'$ & $\\pm',F8.2,'$ & $\\pm',F5.1,'$ & $\\
+     +pm',F8.3,'$ & $\\pm',F8.2,'$ & $\\pm',F8.2,'$ & $\\pm',F8.2,'$ & $
+     +\\pm',F8.3,'$ & \\\\')
+      WRITE(LU_OUT,3006)PP3,T3,OMEGA3*180/3.14159,EE3,K3,A3SINI/1.e6,FDE
+     +M3
+ 3006 FORMAT('outer orbit & ',F12.5,' & ',F12.2,' & ',F5.1,' & ',F8.3,' 
+     +& ',F8.2,' & \\nodata',' & ',F8.2,' & ',F8.3,' & \\nodata \\\\')
+      WRITE(LU_OUT,3007)ERR(7),ERR(8),ERR(9)*180/3.14159,ERR(10),ERR(11)
+     +,ERR_A3SINI/1.e6,ERR_FDEM3
+ 3007 FORMAT(' & $\\pm',F10.5,'$ & $\\pm',F8.2,'$ & $\\pm',F5.1,'$ & $\\
+     +pm',F8.3,'$ & $\\pm',F8.2,'$ & \\nodata & $\\pm',F8.2,'$ & $\\pm',
+     +F8.3,'$ & \\\\')
+      WRITE(LU_OUT,3003)
+ 3003 FORMAT('\\hline',/,'\\end{tabular}',/,'\\vskip 1cm')
+      WRITE(LU_OUT,3004)OBJECT(1:INDEX(OBJECT,' ')-1),OBJECT(1:INDEX(OBJ
+     +ECT,' ')-1)
+ 3004 FORMAT('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%',/,'\\
+     +begin{figure}[h]',/,'\\centering\\includegraphics*[width=12cm]{',A
+     +,'_short.ps}',/,'\\caption{',A,': radial velocity curve of the sho
+     +rt period orbit.}',/,'\\end{figure}',/)
+      WRITE(LU_OUT,30041)OBJECT(1:INDEX(OBJECT,' ')-1),OBJECT(1:INDEX(OB
+     +JECT,' ')-1)
+30041 FORMAT('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%',/,'\\
+     +begin{figure}[h]',/,'\\centering\\includegraphics*[width=12cm]{',A
+     +,'_long.ps}',/,'\\caption{',A,': radial velocity curve of the long
+     + period orbit.}',/,'\\end{figure}',/)
+      WRITE(LU_OUT,3005)OBJECT(1:INDEX(OBJECT,' ')-1),OBJECT(1:INDEX(OBJ
+     +ECT,' ')-1)
+ 3005 FORMAT('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%',/,'\\
+     +begin{figure}[h]',/,'\\centering\\includegraphics*[width=12cm]{',A
+     +,'_resi.ps}',/,'\\caption{',A,': radial velocity residuals.',/,'Fi
+     +lled circles: primary component, open circles: secondary.}',/,'\\e
+     +nd{figure}',/)
+      WRITE(LU_OUT,3009)OBJECT(1:INDEX(OBJECT,' ')-1)
+ 3009 FORMAT('\\twocolumn',/,/,'\\footnotesize',/,'\\begin{tabular}{rrrr
+     +r}',/,'\\hline',/,'\\multicolumn{5}{c}{',A,'}\\\\',/,'\\hline',/,'
+     +Date (JD) & Phase 1\\hfil & Phase 3\\hfil & $RV_O$ ','& $RV_{(O\\!
+     +-\\!C)}$ \\\\',/,' 2400000+ & & & km/s & km/s \\\\',/,'\\hline')
+      DO80030I=1,NN
+      IF(POI1(I).NE.0.)THEN
+      PHI=(TOBS(I)-T)/PP
+      PHI3=(TOBS(I)-T3)/PP3
+      WRITE(LU_OUT,3020)TOBS(I),PHI,PHI3,VIT1(I),RES1(I)
+ 3020 FORMAT(F12.3,' & ',F12.2,' & ',F12.2,' & ',F8.1,' & ',F8.1,' \\\\'
+     +)
+      ENDIF
+80030 CONTINUE
+      WRITE(LU_OUT,3011)
+ 3011 FORMAT('\\end{tabular}',/)
+ 3012 FORMAT('\\bigskip',/,'%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+     +%%%%%%%',/,'\\begin{figure}[h]',/,'\\centering\\includegraphics*[w
+     +idth=10cm]{',A,'_per.ps}',/,'\\caption{',A,': periodogram.}',/,'\\
+     +end{figure}',/)
+      WRITE(LU_OUT,3013)
+ 3013 FORMAT(/,'\\end{document}')
+      CLOSE(LU_OUT)
+      RETURN
+      END
